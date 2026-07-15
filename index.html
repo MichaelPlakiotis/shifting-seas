@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0b1220">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Shifting Seas ⚓ Battleship with moving ships</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚓</text></svg>">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="toast"></div>
+
+<!-- MENU -->
+<section class="screen active" id="screen-menu">
+  <div class="menu-wrap">
+    <h1>⚓ Shifting Seas</h1>
+    <p class="tagline">Battleship, but the ships won’t sit still.</p>
+    <button class="big" id="btnHotseat">🤝 Pass &amp; Play</button>
+    <button class="big" id="btnCpu">🤖 vs Computer</button>
+    <button class="big accent" id="btnOnline">🌐 Play Online</button>
+    <button class="big ghost" id="btnHowTo">📖 How to play</button>
+  </div>
+</section>
+
+<!-- HOW TO PLAY -->
+<section class="screen" id="screen-howto">
+  <div class="panel">
+    <h2>How to play</h2>
+    <ul class="rules">
+      <li><b>Fleet:</b> Carrier (5), Battleship (4), Cruiser (3), Submarine (2), Scout (1) on a 10×10 grid.</li>
+      <li><b>Each turn:</b> first you may <b>move one ship</b> 1 square, then <b>fire one shot</b> — or spend the shot on a power.</li>
+      <li><b>Movement:</b> ships of size 2+ slide only <b>forward or backward</b> along their length. The 1-square Scout can step in any direction (never diagonally).</li>
+      <li><b>Rear hits:</b> hit the <b>tail</b> of a ship and it’s <b>immobilized</b> — it can never move again. Damage travels with a ship when it moves; sink it by hitting every square.</li>
+      <li><b>📡 UAV</b> (every 5 turns): sweep any row or column — enemy-occupied squares flash <span class="red">red</span>. Beware: ships may move after the sweep.</li>
+      <li><b>💥 Triple shot</b> (every 6 turns): fire 3 squares in a line at once.</li>
+      <li>Your old hits and misses stay pinned to the map — but the sea shifts. A "miss" square might hold a ship next turn…</li>
+    </ul>
+    <button class="big" id="btnHowToBack">← Back</button>
+  </div>
+</section>
+
+<!-- ONLINE LOBBY -->
+<section class="screen" id="screen-online">
+  <div class="panel">
+    <h2>🌐 Online battle</h2>
+    <button class="big accent" id="btnHost">➕ Create room</button>
+    <div class="divider">— or join a friend —</div>
+    <div class="join-row">
+      <input id="joinCode" maxlength="5" placeholder="CODE" autocomplete="off" autocapitalize="characters">
+      <button class="big" id="btnJoin">Join</button>
+    </div>
+    <button class="big ghost" id="btnOnlineBack">← Back</button>
+  </div>
+</section>
+
+<!-- ROOM (host waiting / joining) -->
+<section class="screen" id="screen-room">
+  <div class="panel">
+    <h2>Room</h2>
+    <div id="roomCodeBox">
+      <div class="room-code" id="roomCode">·····</div>
+      <div id="qr" class="qr"></div>
+      <div class="join-row">
+        <input id="roomLink" readonly>
+        <button class="big" id="btnCopyLink">Copy</button>
+      </div>
+      <p class="hint">Friend scans the QR or opens the link — or enters the code under “Play Online”.</p>
+    </div>
+    <p id="roomWaiting" class="waiting">…</p>
+    <button class="big ghost" id="btnRoomCancel">✕ Cancel</button>
+  </div>
+</section>
+
+<!-- PLACEMENT -->
+<section class="screen" id="screen-place">
+  <div class="game-wrap">
+    <h2 id="placeTitle">Place your fleet</h2>
+    <p class="hint" id="placeHint"></p>
+    <div class="grid" id="placeGrid"></div>
+    <div class="dock" id="dock"></div>
+    <div class="btn-row">
+      <button id="btnRotate">↔ Horizontal</button>
+      <button id="btnRandomPlace">🎲 Random</button>
+      <button id="btnClearPlace">🗑 Clear</button>
+    </div>
+    <button class="big accent" id="btnReady" disabled>⚔️ Ready for battle</button>
+  </div>
+</section>
+
+<!-- HANDOFF (hotseat) -->
+<section class="screen" id="screen-handoff">
+  <div class="menu-wrap">
+    <h2>🔄 Switch players</h2>
+    <p id="handoffText" class="waiting"></p>
+    <button class="big accent" id="btnHandoff">I’m ready — show my board</button>
+  </div>
+</section>
+
+<!-- GAME -->
+<section class="screen" id="screen-game">
+  <div class="game-wrap">
+    <div id="status" class="status">…</div>
+    <div class="board-label">🎯 Enemy waters</div>
+    <div class="grid enemy" id="enemyGrid"></div>
+    <div class="btn-row" id="powers">
+      <button id="btnUav">📡 UAV</button>
+      <button id="btnTriple">💥 Triple shot</button>
+    </div>
+    <div class="btn-row">
+      <button id="btnSkipMove" class="wide">⏭ Skip move</button>
+    </div>
+    <div class="board-label">🛥 Your fleet <span id="fleetStatus" class="fleet-status"></span></div>
+    <div class="grid own" id="ownGrid"></div>
+    <button class="ghost small-btn" id="btnQuit">✕ Quit game</button>
+  </div>
+</section>
+
+<!-- GAME OVER -->
+<section class="screen" id="screen-over">
+  <div class="menu-wrap">
+    <h1 id="overTitle">Game over</h1>
+    <p id="overSub" class="waiting"></p>
+    <button class="big accent" id="btnRematch">🔁 Rematch</button>
+    <button class="big ghost" id="btnOverMenu">🏠 Main menu</button>
+  </div>
+</section>
+
+<!-- axis chooser modal -->
+<div class="modal" id="axisModal">
+  <div class="modal-box">
+    <h3 id="axisTitle">Choose</h3>
+    <button class="big" id="btnAxisRow">Row</button>
+    <button class="big" id="btnAxisCol">Column</button>
+    <button class="big ghost" id="btnAxisCancel">Cancel</button>
+  </div>
+</div>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="js/game.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/net.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>
