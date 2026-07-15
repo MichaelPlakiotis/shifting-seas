@@ -35,7 +35,8 @@
       <li><b>Fleet:</b> Carrier (5), Battleship (4), Cruiser (3), Submarine (2), Scout (1) on a 10×10 grid.</li>
       <li><b>Each turn:</b> first you may <b>move one ship</b> 1 square, then <b>fire one shot</b> — or spend the shot on a power.</li>
       <li><b>Movement:</b> ships of size 2+ slide only <b>forward or backward</b> along their length. The 1-square Scout can step in any direction (never diagonally).</li>
-      <li><b>Rear hits:</b> hit the <b>tail</b> of a ship and it’s <b>immobilized</b> — it can never move again. Damage travels with a ship when it moves; sink it by hitting every square.</li>
+      <li><b>Rear hits:</b> every ship’s stern is marked with <b>dark stripes</b> — hit it and the ship is <b>immobilized</b> (⚓), never to move again. Damage travels with a ship when it moves; sink it by hitting every square.</li>
+      <li><b>Moving:</b> tap one of your ships — the glowing squares show the water it would <b>step into</b>, ahead of the bow or behind the stern. Tap one to slide the whole ship that way.</li>
       <li><b>📡 UAV</b> (every 5 turns): sweep any row or column — enemy-occupied squares flash <span class="red">red</span>. Beware: ships may move after the sweep.</li>
       <li><b>💥 Triple shot</b> (every 6 turns): fire 3 squares in a line at once.</li>
       <li>Your old hits and misses stay pinned to the map — but the sea shifts. A "miss" square might hold a ship next turn…</li>
@@ -81,7 +82,12 @@
   <div class="game-wrap">
     <h2 id="placeTitle">Place your fleet</h2>
     <p class="hint" id="placeHint"></p>
-    <div class="grid" id="placeGrid"></div>
+    <div class="board">
+      <div class="corner"></div>
+      <div class="labels cols"></div>
+      <div class="labels rows"></div>
+      <div class="grid" id="placeGrid"></div>
+    </div>
     <div class="dock" id="dock"></div>
     <div class="btn-row">
       <button id="btnRotate">↔ Horizontal</button>
@@ -106,7 +112,12 @@
   <div class="game-wrap">
     <div id="status" class="status">…</div>
     <div class="board-label">🎯 Enemy waters</div>
-    <div class="grid enemy" id="enemyGrid"></div>
+    <div class="board" id="enemyBoard">
+      <div class="corner"></div>
+      <div class="labels cols"></div>
+      <div class="labels rows"></div>
+      <div class="grid enemy" id="enemyGrid"></div>
+    </div>
     <div class="btn-row" id="powers">
       <button id="btnUav">📡 UAV</button>
       <button id="btnTriple">💥 Triple shot</button>
@@ -115,7 +126,12 @@
       <button id="btnSkipMove" class="wide">⏭ Skip move</button>
     </div>
     <div class="board-label">🛥 Your fleet <span id="fleetStatus" class="fleet-status"></span></div>
-    <div class="grid own" id="ownGrid"></div>
+    <div class="board" id="ownBoard">
+      <div class="corner"></div>
+      <div class="labels cols"></div>
+      <div class="labels rows"></div>
+      <div class="grid own" id="ownGrid"></div>
+    </div>
     <button class="ghost small-btn" id="btnQuit">✕ Quit game</button>
   </div>
 </section>

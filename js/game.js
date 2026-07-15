@@ -85,15 +85,21 @@ function randomFleet(rng) {
 function moveOptions(fleet, ship) {
   if (ship.immobile || isSunk(ship)) return [];
   const opts = [];
-  const tryPos = (r, c) => {
-    if (canPlace(fleet, ship.size, r, c, ship.dir, ship.id)) opts.push({ r, c });
+  // r,c = new head position; stepR,stepC = the square the ship enters (for UI highlighting)
+  const tryPos = (r, c, stepR, stepC) => {
+    if (canPlace(fleet, ship.size, r, c, ship.dir, ship.id)) opts.push({ r, c, stepR, stepC });
   };
   if (ship.size >= 2) {
-    if (ship.dir === 'h') { tryPos(ship.r, ship.c - 1); tryPos(ship.r, ship.c + 1); }
-    else { tryPos(ship.r - 1, ship.c); tryPos(ship.r + 1, ship.c); }
+    if (ship.dir === 'h') {
+      tryPos(ship.r, ship.c - 1, ship.r, ship.c - 1);                 // ahead: enters the cell in front of the bow
+      tryPos(ship.r, ship.c + 1, ship.r, ship.c + ship.size);         // astern: enters the cell behind the stern
+    } else {
+      tryPos(ship.r - 1, ship.c, ship.r - 1, ship.c);
+      tryPos(ship.r + 1, ship.c, ship.r + ship.size, ship.c);
+    }
   } else {
-    tryPos(ship.r - 1, ship.c); tryPos(ship.r + 1, ship.c);
-    tryPos(ship.r, ship.c - 1); tryPos(ship.r, ship.c + 1);
+    tryPos(ship.r - 1, ship.c, ship.r - 1, ship.c); tryPos(ship.r + 1, ship.c, ship.r + 1, ship.c);
+    tryPos(ship.r, ship.c - 1, ship.r, ship.c - 1); tryPos(ship.r, ship.c + 1, ship.r, ship.c + 1);
   }
   return opts;
 }

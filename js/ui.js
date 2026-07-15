@@ -18,6 +18,7 @@ function newPlayer(name) {
     uavMarks: [],             // last UAV snapshot (may be stale — ships move!)
     uavCd: 0, tripleCd: 0,
     sunkEnemyShips: 0,
+    sunkShips: [],            // cell lists of enemy ships I've sunk (for wreck sprites)
   };
 }
 
@@ -70,48 +71,125 @@ function buildGrid(container, onTap) {
     if (!cell) return;
     onTap(+cell.dataset.r, +cell.dataset.c);
   };
+  // coordinate labels around the board
+  const board = container.closest('.board');
+  if (board) {
+    const cols = board.querySelector('.labels.cols');
+    const rows = board.querySelector('.labels.rows');
+    cols.innerHTML = ''; rows.innerHTML = '';
+    for (let i = 0; i < Game.SIZE; i++) {
+      const cl = document.createElement('div'); cl.textContent = i + 1; cols.appendChild(cl);
+      const rl = document.createElement('div'); rl.textContent = ROWS[i]; rows.appendChild(rl);
+    }
+  }
 }
 
-function gridCell(container, r, c) { return container.children[r * Game.SIZE + c]; }
+function gridCell(container, r, c) { return container.querySelectorAll('.cell')[r * Game.SIZE + c]; }
+
+/* ---------- ship sprites ---------- */
+
+function shipSVG(ship) {
+  const n = ship.size, W = n * 20;
+  const hull = '#8ea6c4', edge = '#c9d8eb', deck = '#67819f', dark = '#33485f';
+  let s = '<svg viewBox="0 0 ' + W + ' 20" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">';
+  if (n === 1) {
+    // little patrol boat
+    s += '<path d="M2 10 Q4.5 3.5 10 3 Q15.5 3.5 18 10 Q15.5 16.5 10 17 Q4.5 16.5 2 10 Z" fill="' + hull + '" stroke="' + edge + '" stroke-width="1"/>';
+    s += '<circle cx="10" cy="10" r="3.6" fill="' + deck + '"/>';
+    s += '<circle cx="10" cy="10" r="1.5" fill="' + dark + '"/>';
+  } else {
+    // hull: pointed bow (head end), rounded stern (rear end)
+    s += '<path d="M1.5 10 Q4 3.5 12 3.5 L' + (W - 7) + ' 3.5 Q' + (W - 2) + ' 3.5 ' + (W - 2) + ' 10 Q' + (W - 2) + ' 16.5 ' + (W - 7) + ' 16.5 L12 16.5 Q4 16.5 1.5 10 Z" fill="' + hull + '" stroke="' + edge + '" stroke-width="1"/>';
+    // deck
+    s += '<path d="M7 10 Q8.5 6.5 14 6.5 L' + (W - 10) + ' 6.5 Q' + (W - 6) + ' 6.5 ' + (W - 6) + ' 10 Q' + (W - 6) + ' 13.5 ' + (W - 10) + ' 13.5 L14 13.5 Q8.5 13.5 7 10 Z" fill="' + deck + '"/>';
+    // stern stripes = the vulnerable rear
+    const sx = (n - 1) * 20;
+    s += '<rect x="' + (sx + 8.5) + '" y="5.5" width="2.6" height="9" rx="1.2" fill="' + dark + '"/>';
+    s += '<rect x="' + (sx + 13) + '" y="5.5" width="2.6" height="9" rx="1.2" fill="' + dark + '"/>';
+    // bow gun + turrets on the other segments
+    s += '<rect x="5" y="9.1" width="7" height="1.8" rx=".9" fill="' + dark + '"/><circle cx="12" cy="10" r="2.6" fill="' + dark + '"/>';
+    for (let i = 1; i < n - 1; i++) {
+      s += '<circle cx="' + (i * 20 + 10) + '" cy="10" r="3" fill="' + dark + '"/><circle cx="' + (i * 20 + 10) + '" cy="10" r="1.2" fill="' + edge + '"/>';
+    }
+  }
+  // damage per segment
+  for (let i = 0; i < n; i++) {
+    if (ship.hits && ship.hits[i]) {
+      const cx = i * 20 + 10;
+      s += '<circle cx="' + cx + '" cy="10" r="6" fill="#ff5d47" opacity=".92"/><circle cx="' + cx + '" cy="10" r="2.6" fill="#ffd23f"/>';
+    }
+  }
+  if (ship.immobile && !(ship.hits && ship.hits.every(h => h))) {
+    s += '<text x="' + ((n - 1) * 20 + 10) + '" y="14.5" font-size="11" text-anchor="middle">⚓</text>';
+  }
+  return s + '</svg>';
+}
+
+function clearSprites(grid) { grid.querySelectorAll('.ship-sprite').forEach(el => el.remove()); }
+
+function drawShipSprite(grid, ship, sel) {
+  const head = gridCell(grid, ship.r, ship.c);
+  if (!head || !head.offsetWidth) return; // grid not visible yet
+  const cells = Game.shipCells(ship);
+  const lastCell = cells[cells.length - 1];
+  const last = gridCell(grid, lastCell.r, lastCell.c);
+  const cellW = head.offsetWidth, cellH = head.offsetHeight;
+  const vertical = ship.dir === 'v' && ship.size > 1;
+  const span = vertical
+    ? last.offsetTop + last.offsetHeight - head.offsetTop
+    : last.offsetLeft + last.offsetWidth - head.offsetLeft;
+  const d = document.createElement('div');
+  d.className = 'ship-sprite' + (Game.isSunk(ship) ? ' sunk' : '') + (sel ? ' sel' : '');
+  d.style.left = head.offsetLeft + 'px';
+  d.style.top = head.offsetTop + 'px';
+  d.style.width = span + 'px';
+  d.style.height = cellH + 'px';
+  if (vertical) {
+    // sprite is drawn bow-left; rotate about the head cell so the bow points up→down the column
+    d.style.transformOrigin = (cellH / 2) + 'px ' + (cellH / 2) + 'px';
+    d.style.transform = 'rotate(90deg)';
+    d.style.height = cellW + 'px';
+  }
+  d.innerHTML = shipSVG(ship);
+  grid.appendChild(d);
+}
+
+function pseudoShipFromCells(cells) {
+  const sorted = cells.slice().sort((a, b) => a.r - b.r || a.c - b.c);
+  const dir = sorted.length > 1 && sorted[0].r === sorted[1].r ? 'h' : 'v';
+  return { size: sorted.length, r: sorted[0].r, c: sorted[0].c, dir, hits: sorted.map(() => true), immobile: false };
+}
 
 /* ---------- rendering ---------- */
 
 function renderOwn() {
   const grid = $('#ownGrid');
   const me = App.players[App.mode === 'online' ? App.online.myIndex : App.current];
-  for (const el of grid.children) el.className = 'cell';
+  grid.querySelectorAll('.cell').forEach(el => { el.className = 'cell'; });
+  clearSprites(grid);
   if (!me || !me.fleet) return;
-  for (const ship of me.fleet) {
-    const cells = Game.shipCells(ship);
-    const sunk = Game.isSunk(ship);
-    cells.forEach((p, i) => {
-      const el = gridCell(grid, p.r, p.c);
-      el.classList.add('ship');
-      if (sunk) el.classList.add('ship-sunk');
-      else if (ship.hits[i]) el.classList.add('ship-hit');
-      if (i === ship.size - 1 && ship.size >= 2) el.classList.add('tail');
-      if (ship.immobile && !sunk) el.classList.add('immobile');
-      if (App.selectedShip && App.selectedShip.id === ship.id) el.classList.add('sel');
-    });
-  }
   for (const [k, v] of me.incoming) {
     const [r, c] = k.split(',').map(Number);
-    const el = gridCell(grid, r, c);
-    if (v === 'miss' && !el.classList.contains('ship')) el.classList.add('miss');
+    if (v === 'miss' && !Game.cellOwner(me.fleet, r, c)) gridCell(grid, r, c).classList.add('miss');
   }
-  for (const o of App.moveOpts) gridCell(grid, o.r, o.c).classList.add('moveopt');
+  for (const o of App.moveOpts) gridCell(grid, o.stepR, o.stepC).classList.add('moveopt');
+  for (const ship of me.fleet) {
+    drawShipSprite(grid, ship, App.selectedShip && App.selectedShip.id === ship.id);
+  }
 }
 
 function renderEnemy() {
   const grid = $('#enemyGrid');
   const me = App.players[App.mode === 'online' ? App.online.myIndex : App.current];
-  for (const el of grid.children) el.className = 'cell';
+  grid.querySelectorAll('.cell').forEach(el => { el.className = 'cell'; });
+  clearSprites(grid);
   if (!me) return;
   for (const p of me.uavMarks) gridCell(grid, p.r, p.c).classList.add('uav-mark');
   for (const [k, v] of me.markers) {
     const [r, c] = k.split(',').map(Number);
     gridCell(grid, r, c).classList.add(v); // 'miss' | 'hit' | 'sunk'
   }
+  for (const cells of me.sunkShips) drawShipSprite(grid, pseudoShipFromCells(cells), false);
 }
 
 function renderHud() {
@@ -145,16 +223,16 @@ function startPlacement(playerIdx) {
 function renderPlacement() {
   const P = App.placing;
   const grid = $('#placeGrid');
-  for (const el of grid.children) el.className = 'cell';
-  for (const ship of P.fleet) {
-    for (const p of Game.shipCells(ship)) gridCell(grid, p.r, p.c).classList.add('ship');
-  }
+  grid.querySelectorAll('.cell').forEach(el => { el.className = 'cell'; });
+  clearSprites(grid);
+  for (const ship of P.fleet) drawShipSprite(grid, ship, false);
   const dock = $('#dock');
   dock.innerHTML = '';
   for (const item of P.queue) {
     const b = document.createElement('button');
     b.className = 'dock-ship' + (P.selSpec === item ? ' sel' : '');
-    b.innerHTML = item.spec.name + ' <span>' + '◼'.repeat(item.spec.size) + '</span>';
+    b.innerHTML = item.spec.name + '<span class="dock-icon" style="width:' + (item.spec.size * 15) + 'px">'
+      + shipSVG({ size: item.spec.size, hits: [], immobile: false }) + '</span>';
     b.onclick = () => { P.selSpec = item; renderPlacement(); };
     dock.appendChild(b);
   }
@@ -256,7 +334,7 @@ function ownGridTap(r, c) {
   const me = App.players[App.mode === 'online' ? App.online.myIndex : App.current];
   // destination tap?
   if (App.selectedShip) {
-    const opt = App.moveOpts.find(o => o.r === r && o.c === c);
+    const opt = App.moveOpts.find(o => o.stepR === r && o.stepC === c);
     if (opt) {
       Game.applyMove(App.selectedShip, opt.r, opt.c);
       App.selectedShip = null; App.moveOpts = []; App.movedThisTurn = true;
@@ -314,6 +392,7 @@ function recordResult(me, res) {
   if (res.sunk) {
     me.sunkEnemyShips++;
     for (const p of res.shipCells || []) me.markers.set(key(p.r, p.c), 'sunk');
+    if (res.shipCells && res.shipCells.length) me.sunkShips.push(res.shipCells);
   }
 }
 
@@ -732,6 +811,12 @@ function init() {
     }
   };
   $('#btnOverMenu').onclick = goMenu;
+
+  // sprites are pixel-positioned; re-render when the layout changes
+  window.addEventListener('resize', () => {
+    if ($('#screen-game').classList.contains('active')) renderAll();
+    if ($('#screen-place').classList.contains('active')) renderPlacement();
+  });
 
   // deep link: ?room=CODE
   const room = new URLSearchParams(location.search).get('room');

@@ -89,9 +89,22 @@ button.armed { outline: 3px solid var(--sel); background: #3a2f10; }
 .board-label { font-size: .85rem; color: var(--dim); font-weight: 600; padding-left: 2px; }
 .fleet-status { float: right; font-weight: 400; }
 
+/* board frame: corner + column numbers on top, row letters on the left */
+.board {
+  display: grid; grid-template-columns: 16px 1fr; grid-template-rows: 16px 1fr;
+  gap: 2px; width: 100%; background: #0a1526; border-radius: 10px; padding: 5px;
+}
+.labels { display: grid; gap: 2px; }
+.labels.cols { grid-template-columns: repeat(10, 1fr); }
+.labels.rows { grid-template-rows: repeat(10, 1fr); }
+.labels div {
+  display: flex; align-items: center; justify-content: center;
+  font-size: .62rem; font-weight: 700; color: var(--dim);
+}
+
 .grid {
   display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px;
-  width: 100%; aspect-ratio: 1; background: #0a1526; border-radius: 10px; padding: 4px;
+  width: 100%; aspect-ratio: 1; position: relative;
 }
 .cell {
   background: var(--water); border-radius: 3px; position: relative;
@@ -100,13 +113,13 @@ button.armed { outline: 3px solid var(--sel); background: #3a2f10; }
 .enemy .cell { cursor: crosshair; }
 .own .cell { cursor: pointer; }
 
-.cell.ship { background: var(--ship); border-color: var(--ship-edge); }
-.cell.ship.tail { box-shadow: inset 0 0 0 3px #43597a; }
-.cell.ship-hit { background: var(--hit); border-color: #ffb3a7; }
-.cell.ship-sunk { background: var(--sunk); border-color: #4a140c; }
-.cell.immobile::after { content: '⚓'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: .7em; opacity: .85; }
-.cell.sel { outline: 3px solid var(--sel); z-index: 2; }
 .cell.moveopt { background: #1f4d3a; border-color: var(--accent); animation: pulse 1.2s infinite; }
+
+/* SVG ship sprites overlaid on the grid */
+.ship-sprite { position: absolute; pointer-events: none; z-index: 3; filter: drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
+.ship-sprite svg { display: block; width: 100%; height: 100%; }
+.ship-sprite.sel { filter: drop-shadow(0 0 6px var(--sel)) drop-shadow(0 0 2px var(--sel)); }
+.ship-sprite.sunk { filter: brightness(.45) saturate(.35); }
 
 .cell.miss::after {
   content: ''; position: absolute; inset: 34%; border-radius: 50%; background: #dbe9ff; opacity: .8;
@@ -121,8 +134,9 @@ button.armed { outline: 3px solid var(--sel); background: #3a2f10; }
 
 /* ---- placement dock ---- */
 .dock { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
-.dock-ship { font-size: .85rem; padding: 8px 10px; min-height: 42px; }
-.dock-ship span { color: var(--ship-edge); letter-spacing: 1px; }
+.dock-ship { font-size: .85rem; padding: 8px 10px; min-height: 42px; display: flex; align-items: center; gap: 7px; }
+.dock-icon { display: inline-block; height: 15px; flex: none; }
+.dock-icon svg { display: block; width: 100%; height: 100%; }
 .dock-ship.sel { outline: 3px solid var(--sel); background: #3a2f10; }
 
 /* ---- toast & modal ---- */
@@ -150,11 +164,11 @@ button.armed { outline: 3px solid var(--sel); background: #3a2f10; }
   .game-wrap { width: min(92vw, 900px); display: grid; grid-template-columns: 1fr 1fr; gap: 10px 24px; align-items: start; }
   .game-wrap .status { grid-column: 1 / -1; }
   .game-wrap > .board-label:nth-of-type(1) { grid-column: 1; grid-row: 2; }
-  #enemyGrid { grid-column: 1; grid-row: 3; }
+  #enemyBoard { grid-column: 1; grid-row: 3; }
   #powers { grid-column: 1; grid-row: 4; }
   .game-wrap > .btn-row:nth-of-type(2) { grid-column: 1; grid-row: 5; }
   .game-wrap > .board-label:nth-of-type(2) { grid-column: 2; grid-row: 2; }
-  #ownGrid { grid-column: 2; grid-row: 3; }
+  #ownBoard { grid-column: 2; grid-row: 3; }
   #btnQuit { grid-column: 1 / -1; }
   #screen-place .game-wrap { display: flex; }
 }
