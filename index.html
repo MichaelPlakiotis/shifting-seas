@@ -157,7 +157,13 @@
 </div>
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script type="module">
+  // The "qrcode" npm package only ships a CommonJS bundle — there's no plain
+  // browser <script> build at any version — so this pulls jsDelivr's
+  // auto-generated ESM bundle instead and exposes it as window.QRCode.
+  import QRCode from 'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/+esm';
+  window.QRCode = QRCode;
+</script>
 <script src="js/game.js"></script>
 <script src="js/ai.js"></script>
 <script src="js/net.js"></script>

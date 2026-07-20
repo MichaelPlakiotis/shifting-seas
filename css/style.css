@@ -60,10 +60,14 @@ button.armed { outline: 3px solid var(--sel); background: #3a2f10; }
 .divider { color: var(--dim); font-size: .9rem; }
 .join-row { display: flex; gap: 8px; }
 .join-row input {
-  flex: 1; min-width: 0; font: inherit; font-size: 1.2rem; letter-spacing: .35em; text-align: center;
+  flex: 1 1 0; min-width: 64px; font: inherit; font-size: 1.2rem; letter-spacing: .35em; text-align: center;
   text-transform: uppercase; color: var(--ink); background: var(--bg);
   border: 1px solid #2c4470; border-radius: 12px; padding: 10px;
 }
+/* .big normally sets width:100%, which — as a flex item's basis — fights the
+   input's flex:1 and collapses the input to near-zero. Keep the button sized
+   to its content here instead. */
+.join-row button.big { width: auto; flex: 0 0 auto; }
 #roomLink { letter-spacing: 0; font-size: .8rem; }
 .room-code { font-size: 2.6rem; font-weight: 800; letter-spacing: .3em; color: var(--accent); }
 .qr { display: flex; justify-content: center; }
